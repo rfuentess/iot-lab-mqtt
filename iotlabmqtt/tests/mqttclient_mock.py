@@ -32,7 +32,7 @@ class MQTTMessage(mqttcommon.mqtt.MQTTMessage):  # pylint:disable=R0903
     def _simple_dict(obj):
         """__dictw_ without values that should not compared."""
         obj_d = obj.__dict__.copy()
-        obj_d.pop('info')
+        obj_d.pop('info', None)
         obj_d.pop('reply_publisher', None)
         return obj_d
 
