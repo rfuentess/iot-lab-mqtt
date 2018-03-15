@@ -24,7 +24,7 @@ PAHO_VERSION = packaging.version.parse(paho.mqtt.__version__)
 class MQTTWrapMessage(object):  # pylint: disable=too-few-public-methods
     """MQTTMessage wrapper."""
 
-    def __init__(self, obj, reply_publisher):
+    def __init__(self, obj, reply_publisher=None):
         """ Wrapper constructor. """
         self._wrapped_obj = obj
         self.reply_publisher = reply_publisher
@@ -35,6 +35,16 @@ class MQTTWrapMessage(object):  # pylint: disable=too-few-public-methods
             return getattr(self, attr)
         # proxy to the wrapped object
         return getattr(self._wrapped_obj, attr)
+
+    def __eq__(self, other):
+        # Compare internal dicts, except 'info' as not important for tests
+        other_d = other.__dict__.copy()
+        self_d = other.__dict__.copy()
+        # other_d.pop('info', None)
+        other_d.pop('reply_publisher', None)
+        # self_d.pop('info', None)
+        self_d.pop('reply_publisher', None)
+        return other_d == self_d
 
 
 class MQTTClient(mqtt.Client):

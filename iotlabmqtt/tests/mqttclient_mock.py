@@ -11,32 +11,6 @@ import threading
 import packaging.version
 from iotlabmqtt import mqttcommon
 
-
-class MQTTMessage(mqttcommon.mqtt.MQTTMessage):  # pylint:disable=R0903
-    """Add 'eq' to MQTTMessage for Mock use."""
-
-    def __eq__(self, other):
-        # Compare internal dicts, except 'info' as not important for tests
-        self_d = self._simple_dict(self)
-        other_d = self._simple_dict(other)
-
-        ret = self_d == other_d
-
-        if not ret:
-            print(self_d)
-            print(other_d)
-
-        return ret
-
-    @staticmethod
-    def _simple_dict(obj):
-        """__dictw_ without values that should not compared."""
-        obj_d = obj.__dict__.copy()
-        obj_d.pop('info', None)
-        obj_d.pop('reply_publisher', None)
-        return obj_d
-
-
 def encode_topic_if_needed(topic):
     """Encode topic if required for specific paho and python version."""
     import sys  # pylint:disable=redefined-outer-name
@@ -45,7 +19,8 @@ def encode_topic_if_needed(topic):
 
     # Handle new MQTTMessage version
     version_needs_bytes = packaging.version.parse('1.2.1')
-    if mqttcommon.PAHO_VERSION >= version_needs_bytes:
+    if (mqttcommon.PAHO_VERSION >= version_needs_bytes and
+            not isinstance(topic, bytes)):
         return topic.encode('utf-8')
 
     return topic
@@ -54,7 +29,8 @@ def encode_topic_if_needed(topic):
 def mqttmessage(topic, payload):
     """Create message for topic/payload."""
     topic = encode_topic_if_needed(topic)
-    msg = MQTTMessage(topic=topic)
+    msg = mqttcommon.MQTTWrapMessage(mqttcommon.mqtt.MQTTMessage(topic=topic))
+
     # Handle '_bytes_safe_payload'
     if isinstance(payload, bytearray):
         payload = bytes(payload)
@@ -97,7 +73,7 @@ class MQTTClientMock(mqttcommon.MQTTClient):
         return info
 
     def async_send_message(self, message, info):
-        """Start a thread thatThread run function to publish message."""
+        """Start a thread that runs a function to publish message."""
         if self.publish_delay:
             threading.Thread(target=self._async_send_message,
                              args=(message, info)).start()
